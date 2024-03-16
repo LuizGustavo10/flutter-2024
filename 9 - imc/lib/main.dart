@@ -26,6 +26,8 @@ class _BMICalculatorState extends State<BMICalculator> {
   TextEditingController heightController = TextEditingController();
   TextEditingController weightController = TextEditingController();
   double bmiResult = 0.0;
+  String bmiDescription = '';
+  String bmiImagePath = '';
 
   @override
   Widget build(BuildContext context) {
@@ -61,6 +63,18 @@ class _BMICalculatorState extends State<BMICalculator> {
               'Resultado do IMC: ${bmiResult.toStringAsFixed(2)}',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
+            SizedBox(height: 10),
+            Text(
+              'Classificação: $bmiDescription',
+              style: TextStyle(fontSize: 16),
+            ),
+            SizedBox(height: 10),
+            if (bmiImagePath.isNotEmpty)
+              Image.asset(
+                bmiImagePath,
+                width: 100,
+                height: 100,
+              ),
           ],
         ),
       ),
@@ -77,6 +91,8 @@ class _BMICalculatorState extends State<BMICalculator> {
 
       setState(() {
         bmiResult = bmi;
+        bmiDescription = getBMIDescription(bmi);
+        bmiImagePath = getBMIImagePath(bmi);
       });
     } else {
       // Trate o caso em que a altura ou o peso são inválidos
@@ -84,7 +100,41 @@ class _BMICalculatorState extends State<BMICalculator> {
       // Neste exemplo, simplesmente definimos o resultado do IMC como 0.0.
       setState(() {
         bmiResult = 0.0;
+        bmiDescription = '';
+        bmiImagePath = '';
       });
+    }
+  }
+
+  String getBMIDescription(double bmi) {
+    if (bmi < 18.5) {
+      return 'Abaixo do peso';
+    } else if (bmi >= 18.5 && bmi < 24.9) {
+      return 'Peso normal';
+    } else if (bmi >= 25 && bmi < 29.9) {
+      return 'Sobrepeso';
+    } else if (bmi >= 30 && bmi < 34.9) {
+      return 'Obesidade grau I';
+    } else if (bmi >= 35 && bmi < 39.9) {
+      return 'Obesidade grau II';
+    } else {
+      return 'Obesidade grau III';
+    }
+  }
+
+  String getBMIImagePath(double bmi) {
+    if (bmi < 18.5) {
+      return 'assets/images/underweight.png';
+    } else if (bmi >= 18.5 && bmi < 24.9) {
+      return 'assets/images/normalweight.png';
+    } else if (bmi >= 25 && bmi < 29.9) {
+      return 'assets/images/overweight.png';
+    } else if (bmi >= 30 && bmi < 34.9) {
+      return 'assets/images/obesity1.png';
+    } else if (bmi >= 35 && bmi < 39.9) {
+      return 'assets/images/obesity2.png';
+    } else {
+      return 'assets/images/obesity3.png';
     }
   }
 }

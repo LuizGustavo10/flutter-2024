@@ -39,15 +39,15 @@ class MenuScreen extends StatelessWidget {
         child: GridView.count(
           crossAxisCount: 3,
           children: <Widget>[
-            MenuButton(text: 'Screen 1', route: '/screen1', icon: Icons.home),
-            MenuButton(text: 'Screen 2', route: '/screen2', icon: Icons.search),
-            MenuButton(text: 'Screen 3', route: '/screen3', icon: Icons.settings),
-            MenuButton(text: 'Screen 4', route: '/screen4', icon: Icons.info),
-            MenuButton(text: 'Screen 5', route: '/screen5', icon: Icons.notifications),
-            MenuButton(text: 'Screen 6', route: '/screen6', icon: Icons.person),
-            MenuButton(text: 'Screen 7', route: '/screen7', icon: Icons.mail),
-            MenuButton(text: 'Screen 8', route: '/screen8', icon: Icons.shopping_cart),
-            MenuButton(text: 'Screen 9', route: '/screen9', icon: Icons.favorite),
+            botao(text: 'Screen 1', route: '/screen1', icon: Icons.home),
+            botao(text: 'Screen 2', route: '/screen2', icon: Icons.search),
+            botao(text: 'Screen 3', route: '/screen3', icon: Icons.settings),
+            botao(text: 'Screen 4', route: '/screen4', icon: Icons.info),
+            botao(text: 'Screen 5', route: '/screen5', icon: Icons.notifications),
+            botao(text: 'Screen 6', route: '/screen6', icon: Icons.person),
+            botao(text: 'Screen 7', route: '/screen7', icon: Icons.mail),
+            botao(text: 'Screen 8', route: '/screen8', icon: Icons.shopping_cart),
+            botao(text: 'Screen 9', route: '/screen9', icon: Icons.favorite),
           ],
         ),
       ),
@@ -55,12 +55,12 @@ class MenuScreen extends StatelessWidget {
   }
 }
 
-class MenuButton extends StatelessWidget {
+class botao extends StatelessWidget {
   final String text;
   final String route;
   final IconData icon;
 
-  const MenuButton({Key? key, required this.text, required this.route, required this.icon}) : super(key: key);
+  const botao({Key? key, required this.text, required this.route, required this.icon}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
