@@ -25,20 +25,20 @@ class TimerApp extends StatefulWidget {
 
 class _TimerAppState extends State<TimerApp> {
   late Timer _timer;
-  int _seconds = 0;
-  bool _isActive = false;
+  int _segundos = 0;
+  bool _ativo = false;
   TextEditingController _timeController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _timeController.text = "60"; // Valor padrão inicial
+    _timeController.text = "1"; // Valor padrão inicial de 1 minuto
   }
 
   void _updateTimer(Timer timer) {
-    if (_isActive && _seconds > 0) {
+    if (_ativo && _segundos > 0) {
       setState(() {
-        _seconds -= 1;
+        _segundos -= 1;
       });
     } else {
       _toggleTimer(); // Pausar quando o tempo chegar a zero
@@ -47,9 +47,9 @@ class _TimerAppState extends State<TimerApp> {
 
   void _toggleTimer() {
     setState(() {
-      _isActive = !_isActive;
-      if (_isActive) {
-        _seconds = int.tryParse(_timeController.text) ?? 0;
+      _ativo = !_ativo;
+      if (_ativo) {
+        _segundos = (int.tryParse(_timeController.text) ?? 0) * 60; // Converter minutos para segundos
         _timer = Timer.periodic(Duration(seconds: 1), _updateTimer);
       } else {
         _timer.cancel();
@@ -57,12 +57,7 @@ class _TimerAppState extends State<TimerApp> {
     });
   }
 
-  void _resetTimer() {
-    setState(() {
-      _isActive = false;
-      _seconds = int.tryParse(_timeController.text) ?? 0;
-    });
-  }
+  
 
   @override
   void dispose() {
@@ -72,7 +67,7 @@ class _TimerAppState extends State<TimerApp> {
 
   @override
   Widget build(BuildContext context) {
-    double progressValue = _seconds / (int.tryParse(_timeController.text) ?? 1.0);
+    double progresso = _segundos / ((int.tryParse(_timeController.text) ?? 1) * 60); // Converter minutos para segundos
 
     return Scaffold(
       appBar: AppBar(
@@ -82,19 +77,25 @@ class _TimerAppState extends State<TimerApp> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
+            Container(
+              child: Center(
+                child: CircularProgressIndicator(
+                  value: progresso.isNaN ? 0.0 : progresso,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                  strokeWidth: 150,
+                ),
+              ),
+              height: 150,
+              width: 150,
+            ),
             TextField(
               controller: _timeController,
               keyboardType: TextInputType.number,
-              decoration: InputDecoration(labelText: 'Tempo (segundos)'),
-            ),
-            SizedBox(height: 20),
-            LinearProgressIndicator(
-              value: progressValue.isNaN ? 0.0 : progressValue,
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+              decoration: InputDecoration(labelText: 'Tempo (minutos)'),
             ),
             SizedBox(height: 20),
             Text(
-              '${(_seconds ~/ 60).toString().padLeft(2, '0')}:${(_seconds % 60).toString().padLeft(2, '0')}',
+              '${(_segundos ~/ 60).toString().padLeft(2, '0')}:${(_segundos % 60).toString().padLeft(2, '0')}',
               style: TextStyle(fontSize: 48),
             ),
             SizedBox(height: 20),
@@ -103,13 +104,10 @@ class _TimerAppState extends State<TimerApp> {
               children: <Widget>[
                 ElevatedButton(
                   onPressed: _toggleTimer,
-                  child: _isActive ? Text('Pausar') : Text('Iniciar'),
+                  child: _ativo ? Text('Pausar') : Text('Iniciar'),
                 ),
                 SizedBox(width: 20),
-                ElevatedButton(
-                  onPressed: _resetTimer,
-                  child: Text('Reiniciar'),
-                ),
+              
               ],
             ),
           ],
