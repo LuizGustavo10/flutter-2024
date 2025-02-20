@@ -60,6 +60,8 @@ class Aplicativo extends StatelessWidget {
                   Icon(Icons.person),
                 ],
               ),
+
+
               ////----------------alinhando um item dentro do outro ----------------
               // body: Stack(
               //   children: [
@@ -83,8 +85,7 @@ class Aplicativo extends StatelessWidget {
         // body: ListView.builder(
         //   itemBuilder: (_, index){
         //     return Container(
-
-        //       width: 500,
+  
         //       height: 500,
 
         //     );
