@@ -138,7 +138,7 @@ class _CadastroPageState extends State<CadastroPage> {
       ),
     );
   }
-}
+} 
 
 class TabelaPage extends StatelessWidget {
   final List<Person> people;
