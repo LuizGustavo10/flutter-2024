@@ -1,9 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'dart:io';
 
 void main() {
   runApp(MyApp());
@@ -43,25 +40,32 @@ class _LoginPageState extends State<LoginPage> {
     final response = await http.get(url);
 
     if (response.statusCode == 200) {
-      final Map<String, dynamic> data = jsonDecode(response.body);
-      bool isValidUser = false;
-      String userName = '';
+      final Map<String, dynamic>? data = jsonDecode(response.body);
 
-      data.forEach((key, value) {
-        if (value['email'] == email && value['password'] == password) {
-          isValidUser = true;
-          userName = value['name'];
+      if (data != null) {
+        bool isValidUser = false;
+        String userName = '';
+
+        data.forEach((key, value) {
+          if (value['email'] == email && value['password'] == password) {
+            isValidUser = true;
+            userName = value['name'];
+          }
+        });
+
+        if (isValidUser) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => MenuPage(userName: userName)),
+          );
+        } else {
+          setState(() {
+            _errorMessage = 'Email ou senha inválidos';
+          });
         }
-      });
-
-      if (isValidUser) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => MenuPage(userName: userName)),
-        );
       } else {
         setState(() {
-          _errorMessage = 'Email ou senha inválidos';
+          _errorMessage = 'Nenhum dado encontrado';
         });
       }
     } else {
@@ -84,11 +88,14 @@ class _LoginPageState extends State<LoginPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            Icon(Icons.person, size: 100, color: Colors.blue),
+            SizedBox(height: 20),
             TextField(
               controller: _emailController,
               decoration: InputDecoration(
                 labelText: 'E-mail',
                 border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.email),
               ),
               keyboardType: TextInputType.emailAddress,
             ),
@@ -98,6 +105,7 @@ class _LoginPageState extends State<LoginPage> {
               decoration: InputDecoration(
                 labelText: 'Senha',
                 border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.lock),
               ),
               obscureText: true,
             ),
@@ -110,10 +118,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
             SizedBox(height: 16),
             _errorMessage.isNotEmpty
-                ? Text(
-                    _errorMessage,
-                    style: TextStyle(color: Colors.red),
-                  )
+                ? Text(_errorMessage, style: TextStyle(color: Colors.red))
                 : SizedBox(),
             TextButton(
               onPressed: () {
@@ -265,7 +270,17 @@ class MenuPage extends StatelessWidget {
                   MaterialPageRoute(builder: (context) => VerPostagensPage(userName: userName)),
                 );
               },
-              child: Text('Ver Postagens'),
+              child: Text('Ver Postagens de Todos'),
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => MinhasPostagensPage(userName: userName)),
+                );
+              },
+              child: Text('Ver Minhas Postagens'),
             ),
           ],
         ),
@@ -286,32 +301,14 @@ class CadastrarPostagemPage extends StatefulWidget {
 class _CadastrarPostagemPageState extends State<CadastrarPostagemPage> {
   final _postTitleController = TextEditingController();
   final _postContentController = TextEditingController();
-  XFile? _image;
-  final _picker = ImagePicker();
-
-  Future<String?> _uploadImage() async {
-    if (_image == null) return null;
-
-    try {
-      final ref = FirebaseStorage.instance.ref().child('post_images').child(DateTime.now().toString());
-      final uploadTask = ref.putFile(File(_image!.path));
-
-      final snapshot = await uploadTask.whenComplete(() => null);
-      final downloadUrl = await snapshot.ref.getDownloadURL();
-
-      return downloadUrl;
-    } catch (e) {
-      print('Erro ao enviar a imagem: $e');
-      return null;
-    }
-  }
+  final _imageUrlController = TextEditingController();
 
   Future<void> _addPost() async {
     final title = _postTitleController.text;
     final content = _postContentController.text;
+    final imageUrl = _imageUrlController.text;
 
-    if (title.isNotEmpty && content.isNotEmpty) {
-      final imageUrl = await _uploadImage();
+    if (title.isNotEmpty && content.isNotEmpty && imageUrl.isNotEmpty) {
       final url = Uri.parse('https://senac-b0fdc-default-rtdb.firebaseio.com/posts.json');
       final response = await http.post(
         url,
@@ -319,7 +316,7 @@ class _CadastrarPostagemPageState extends State<CadastrarPostagemPage> {
           'title': title,
           'content': content,
           'author': widget.userName,
-          'imageUrl': imageUrl ?? '',
+          'imageUrl': imageUrl,
         }),
         headers: {'Content-Type': 'application/json'},
       );
@@ -351,23 +348,14 @@ class _CadastrarPostagemPageState extends State<CadastrarPostagemPage> {
               decoration: InputDecoration(labelText: 'Conteúdo da Postagem'),
             ),
             SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () async {
-                final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-                if (pickedFile != null) {
-                  setState(() {
-                    _image = pickedFile;
-                  });
-                }
-              },
-              child: Text('Escolher Imagem'),
+            TextField(
+              controller: _imageUrlController,
+              decoration: InputDecoration(labelText: 'URL da Imagem'),
             ),
-            if (_image != null)
-              Image.file(File(_image!.path), height: 150, fit: BoxFit.cover),
             SizedBox(height: 16),
             ElevatedButton(
               onPressed: _addPost,
-              child: Text('Publicar'),
+              child: Text('Adicionar Postagem'),
             ),
           ],
         ),
@@ -376,67 +364,156 @@ class _CadastrarPostagemPageState extends State<CadastrarPostagemPage> {
   }
 }
 
-class VerPostagensPage extends StatefulWidget {
+class VerPostagensPage extends StatelessWidget {
   final String userName;
 
   VerPostagensPage({required this.userName});
 
-  @override
-  _VerPostagensPageState createState() => _VerPostagensPageState();
-}
-
-class _VerPostagensPageState extends State<VerPostagensPage> {
-  List<Map<String, dynamic>> posts = [];
-
-  Future<void> _fetchPosts() async {
+  Future<List<Map<String, dynamic>>> _fetchPosts() async {
     final url = Uri.parse('https://senac-b0fdc-default-rtdb.firebaseio.com/posts.json');
     final response = await http.get(url);
 
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> data = jsonDecode(response.body);
-      final List<Map<String, dynamic>> loadedPosts = [];
-      data.forEach((key, value) {
-        loadedPosts.add({
-          'title': value['title'],
-          'content': value['content'],
-          'author': value['author'],
-          'imageUrl': value['imageUrl'] ?? '',
-        });
+    final Map<String, dynamic> data = jsonDecode(response.body);
+    final List<Map<String, dynamic>> posts = [];
+    data.forEach((key, value) {
+      posts.add({
+        'title': value['title'],
+        'content': value['content'],
+        'author': value['author'],
+        'imageUrl': value['imageUrl'],
       });
-
-      setState(() {
-        posts = loadedPosts;
-      });
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchPosts();
+    });
+    return posts;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Postagens')),
-      body: ListView.builder(
-        itemCount: posts.length,
-        itemBuilder: (ctx, index) {
-          final post = posts[index];
-          return Card(
-            margin: EdgeInsets.all(10),
-            child: ListTile(
-              title: Text(post['title']),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Autor: ${post['author']}'),
-                  SizedBox(height: 8),
-                  Text(post['content']),
-                ],
-              ),
-            ),
+      appBar: AppBar(title: Text('Ver Postagens')),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+
+        future: _fetchPosts(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text('Erro ao carregar postagens'));
+          }
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return Center(child: Text('Sem postagens para exibir'));
+          }
+
+          final posts = snapshot.data!;
+          return ListView.builder(
+            itemCount: posts.length,
+            itemBuilder: (ctx, index) {
+              final post = posts[index];
+             
+              return Card(
+                elevation: 5,
+                margin: EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                child: Column(
+                  children: [
+                    post['imageUrl'] == null ? SizedBox(): Image.network(post['imageUrl']), // Foto em cima
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(post['title'], style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          SizedBox(height: 8),
+                          Text(post['author'], style: TextStyle(fontSize: 14, color: Colors.grey)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+class MinhasPostagensPage extends StatelessWidget {
+  final String userName;
+
+  MinhasPostagensPage({required this.userName});
+
+  Future<List<Map<String, dynamic>>> _fetchUserPosts() async {
+    final url = Uri.parse('https://senac-b0fdc-default-rtdb.firebaseio.com/posts.json');
+    final response = await http.get(url);
+
+    final Map<String, dynamic> data = jsonDecode(response.body);
+    final List<Map<String, dynamic>> posts = [];
+    data.forEach((key, value) {
+      if (value['author'] == userName) {
+        posts.add({
+          'title': value['title'],
+          'content': value['content'],
+          'author': value['author'],
+          'imageUrl': value['imageUrl'],
+        });
+      }
+    });
+    return posts;
+  }
+  
+    Future<void> _deletePost(String postId) async {
+    final url = Uri.parse('https://senac-b0fdc-default-rtdb.firebaseio.com/posts/$postId.json');
+    await http.delete(url);
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Minhas Postagens')),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+
+        future: _fetchUserPosts(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text('Erro ao carregar postagens'));
+          }
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return Center(child: Text('Você ainda não fez nenhuma postagem'));
+          }
+
+          final posts = snapshot.data!;
+          return ListView.builder(
+            itemCount: posts.length,
+            itemBuilder: (ctx, index) {
+              final post = posts[index];
+ 
+              return Card(
+                elevation: 5,
+                margin: EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                child: Column(
+                  children: [
+                    post['imageUrl'] == null ? SizedBox(): Image.network(post['imageUrl']), // Foto em cima
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(post['title'], style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          SizedBox(height: 8),
+                          Text(post['author'], style: TextStyle(fontSize: 14, color: Colors.grey)),
+                          
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
           );
         },
       ),
